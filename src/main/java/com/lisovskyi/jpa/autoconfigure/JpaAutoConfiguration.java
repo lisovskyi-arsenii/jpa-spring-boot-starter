@@ -12,6 +12,27 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
+/**
+ * Spring Boot auto-configuration for JPA auditing support.
+ *
+ * <p>Activated when {@code app.jpa.auditing-enabled=true} (default).
+ * Disable by setting {@code app.jpa.auditing-enabled=false} in
+ * {@code application.properties} / {@code application.yml}.
+ *
+ * <p>This configuration:
+ * <ul>
+ *   <li>Enables JPA auditing via a nested {@link JpaAuditingConfiguration}
+ *       class to avoid conflicts when the consumer application also
+ *       declares {@code @EnableJpaAuditing}.</li>
+ *   <li>Registers a default {@link SecurityAuditorAware} bean that reads
+ *       the current username from the Spring Security context — but only
+ *       when Spring Security is on the classpath and no custom
+ *       {@code AuditorAware<String>} bean is already defined.</li>
+ * </ul>
+ *
+ * @see JpaProperties
+ * @see SecurityAuditorAware
+ */
 @AutoConfiguration
 @EnableConfigurationProperties(JpaProperties.class)
 @ConditionalOnProperty(prefix = "app.jpa", name = "auditing-enabled", havingValue = "true", matchIfMissing = true)
@@ -19,9 +40,24 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 public class JpaAutoConfiguration {
 
     /**
-     * Registers the default AuditorAware bean that reads the current user
-     * from the Spring Security context. Only activated when Spring Security
-     * is present on the classpath and no custom AuditorAware bean exists.
+     * Registers the default {@link SecurityAuditorAware} bean.
+     *
+     * <p>Only created when both conditions are met:
+     * <ul>
+     *   <li>Spring Security's {@code SecurityContextHolder} is present on the classpath.</li>
+     *   <li>No custom {@code AuditorAware} bean is already defined in the context.</li>
+     * </ul>
+     *
+     * <p>Override by declaring your own {@code AuditorAware<String>} bean:
+     * <pre>{@code
+     * @Bean
+     * public AuditorAware<String> auditorAware() {
+     *     return () -> Optional.of("custom-user");
+     * }
+     * }</pre>
+     *
+     * @return a {@link SecurityAuditorAware} that resolves the auditor from
+     *         the active Spring Security {@code Authentication}
      */
     @Bean
     @ConditionalOnMissingBean(AuditorAware.class)
@@ -31,11 +67,14 @@ public class JpaAutoConfiguration {
     }
 
     /**
-     * Separate configuration class for @EnableJpaAuditing to avoid
-     * IllegalStateException when multiple configurations attempt to enable
-     * JPA auditing (e.g., if the consumer app also declares @EnableJpaAuditing).
-     * The {@code jpaAuditingHandler} bean name is registered by @EnableJpaAuditing
-     * so @ConditionalOnMissingBean prevents double registration.
+     * Isolated configuration class that activates {@code @EnableJpaAuditing}.
+     *
+     * <p>Placed in a separate nested class to avoid an
+     * {@code IllegalStateException} that occurs when two configuration classes
+     * both declare {@code @EnableJpaAuditing} in the same application context
+     * (e.g. when the consumer app also annotates its own config class).
+     * The {@code jpaAuditingHandler} bean guard ensures that auditing is
+     * enabled at most once.
      */
     @Configuration
     @ConditionalOnMissingBean(name = "jpaAuditingHandler")

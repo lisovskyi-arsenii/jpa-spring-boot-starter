@@ -16,11 +16,9 @@ dependencyManagement {
 }
 
 val lombokVersion = "1.18.46"
-val uuidCreatorVersion = "6.1.1"
 
 dependencies {
     api("org.springframework.boot:spring-boot-starter-data-jpa")
-    api("com.github.f4b6a3:uuid-creator:$uuidCreatorVersion")
 
     compileOnly("org.springframework.security:spring-security-core")
     compileOnly("com.lisovskyi:security-starter-core:0.1.1")
@@ -45,7 +43,7 @@ publishing {
             from(components["java"])
             groupId = "com.lisovskyi"
             artifactId = "lisovskyi-jpa-starter"
-            version = "0.1.3"
+            version = "0.2.0"
         }
     }
 
