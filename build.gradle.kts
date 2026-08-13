@@ -16,12 +16,13 @@ dependencyManagement {
 }
 
 val lombokVersion = "1.18.46"
+val securityStarterVersion = "0.2.0"
 
 dependencies {
     api("org.springframework.boot:spring-boot-starter-data-jpa")
 
     compileOnly("org.springframework.security:spring-security-core")
-    compileOnly("com.lisovskyi:security-starter-core:0.1.1")
+    compileOnly("com.lisovskyi:security-starter-core:$securityStarterVersion")
     compileOnly("org.springframework.boot:spring-boot-autoconfigure")
     compileOnly("org.projectlombok:lombok:$lombokVersion")
 
@@ -47,7 +48,20 @@ publishing {
         }
     }
 
+
     repositories {
         mavenLocal()
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/Sentio1/backend-java")
+            credentials {
+                username = findProperty("gpr.user") as String? ?: System.getenv("GITHUB_ACTOR") ?: ""
+                password = findProperty("gpr.token") as String? ?: System.getenv("GITHUB_TOKEN") ?: ""
+            }
+        }
     }
+}
+
+tasks.withType<GenerateModuleMetadata> {
+    enabled = false
 }
