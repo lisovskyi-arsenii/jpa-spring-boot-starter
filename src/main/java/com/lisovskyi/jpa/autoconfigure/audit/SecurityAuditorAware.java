@@ -1,7 +1,9 @@
 package com.lisovskyi.jpa.autoconfigure.audit;
 
-import lombok.NonNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.data.domain.AuditorAware;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.AuthenticatedPrincipal;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -50,7 +52,9 @@ public class SecurityAuditorAware implements AuditorAware<String> {
     public @NonNull Optional<String> getCurrentAuditor() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || !authentication.isAuthenticated()
+        if (authentication == null ||
+                !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken
                 || "anonymousUser".equals(authentication.getPrincipal())) {
             return Optional.of(SYSTEM_USER);
         }
@@ -59,6 +63,8 @@ public class SecurityAuditorAware implements AuditorAware<String> {
 
         if (principal instanceof UserDetails userDetails) {
             return Optional.of(userDetails.getUsername());
+        } else if (principal instanceof AuthenticatedPrincipal authenticatedPrincipal) {
+            return Optional.of(authenticatedPrincipal.getName());
         } else if (principal instanceof String principalStr) {
             return Optional.of(principalStr);
         }

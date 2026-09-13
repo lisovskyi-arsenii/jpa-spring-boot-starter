@@ -2,9 +2,12 @@ package com.lisovskyi.jpa.autoconfigure;
 
 import com.lisovskyi.jpa.autoconfigure.audit.SecurityAuditorAware;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration;
+import org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,7 +16,7 @@ import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 /**
- * Spring Boot auto-configuration for JPA auditing support.
+ * Spring Boot autoconfiguration for JPA auditing support.
  *
  * <p>Activated when {@code app.jpa.auditing-enabled=true} (default).
  * Disable by setting {@code app.jpa.auditing-enabled=false} in
@@ -34,6 +37,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
  * @see SecurityAuditorAware
  */
 @AutoConfiguration
+@AutoConfigureAfter({HibernateJpaAutoConfiguration.class, DataJpaRepositoriesAutoConfiguration.class})
+@ConditionalOnClass(AuditorAware.class)
 @EnableConfigurationProperties(JpaProperties.class)
 @ConditionalOnProperty(prefix = "app.jpa", name = "auditing-enabled", havingValue = "true", matchIfMissing = true)
 @Import(JpaAutoConfiguration.JpaAuditingConfiguration.class)
@@ -76,7 +81,7 @@ public class JpaAutoConfiguration {
      * The {@code jpaAuditingHandler} bean guard ensures that auditing is
      * enabled at most once.
      */
-    @Configuration
+    @Configuration(proxyBeanMethods = false)
     @ConditionalOnMissingBean(name = "jpaAuditingHandler")
     @EnableJpaAuditing
     static class JpaAuditingConfiguration {

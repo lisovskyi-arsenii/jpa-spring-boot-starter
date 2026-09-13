@@ -1,67 +1,76 @@
 plugins {
-    id("java-library")
-    id("io.spring.dependency-management") version "1.1.7"
-    id("maven-publish")
-}
-
-repositories {
-    mavenCentral()
-    mavenLocal()
+    `java-library`
+    alias(libs.plugins.spring.dependency.management)
+    alias(libs.plugins.maven.publish.plugin)
 }
 
 dependencyManagement {
     imports {
-        mavenBom("org.springframework.boot:spring-boot-dependencies:4.1.0")
+        mavenBom(libs.spring.boot.dependencies.get().toString())
     }
 }
 
-val lombokVersion = "1.18.46"
-val securityStarterVersion = "0.2.0"
-
 dependencies {
-    api("org.springframework.boot:spring-boot-starter-data-jpa")
+    api(libs.spring.boot.starter.data.jpa)
 
-    compileOnly("org.springframework.security:spring-security-core")
-    compileOnly("com.lisovskyi:security-starter-core:$securityStarterVersion")
-    compileOnly("org.springframework.boot:spring-boot-autoconfigure")
-    compileOnly("org.projectlombok:lombok:$lombokVersion")
+    compileOnly(libs.spring.security.core)
+    compileOnly(libs.security.starter.core)
+    compileOnly(libs.spring.boot.autoconfigure)
 
-    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
-    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
+    annotationProcessor(libs.spring.boot.configuration.processor)
 
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.spring.security.core)
+    testImplementation(libs.spring.boot.autoconfigure)
+    testRuntimeOnly(libs.h2)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(25))
+        languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get()))
     }
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
-            groupId = "com.lisovskyi"
-            artifactId = "lisovskyi-jpa-starter"
-            version = "0.2.0"
-        }
-    }
+tasks.test {
+    useJUnitPlatform()
+}
 
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
 
-    repositories {
-        mavenLocal()
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/Sentio1/backend-java")
-            credentials {
-                username = findProperty("gpr.user") as String? ?: System.getenv("GITHUB_ACTOR") ?: ""
-                password = findProperty("gpr.token") as String? ?: System.getenv("GITHUB_TOKEN") ?: ""
+    coordinates(
+        groupId = project.group.toString(),
+        artifactId = "lisovskyi-jpa-starter",
+        version = project.version.toString()
+    )
+
+    pom {
+        name.set("Lisovskyi JPA Spring Boot Starter")
+        description.set("JPA auto-configuration starter providing UUID/sequence identity strategies, auditable base entities, and Spring Security-aware auditing for Spring Boot")
+        inceptionYear.set("2026")
+        url.set("https://github.com/lisovskyi-arsenii/jpa-spring-boot-starter")
+        licenses {
+            license {
+                name.set("The Apache License, Version 2.0")
+                url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
             }
         }
+        developers {
+            developer {
+                id.set("lisovskyi-arsenii")
+                name.set("Arsenii Lisovskyi")
+            }
+        }
+        scm {
+            url.set("https://github.com/lisovskyi-arsenii/jpa-spring-boot-starter")
+            connection.set("scm:git:git://github.com/lisovskyi-arsenii/jpa-spring-boot-starter.git")
+            developerConnection.set("scm:git:ssh://git@github.com/lisovskyi-arsenii/jpa-spring-boot-starter.git")
+        }
     }
 }
 
-tasks.withType<GenerateModuleMetadata> {
-    enabled = false
+tasks.withType<GenerateModuleMetadata>().configureEach {
+    suppressedValidationErrors.add("dependencies-without-versions")
 }

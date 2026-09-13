@@ -1,9 +1,16 @@
-rootProject.name = "lisovskyi-jpa-starter"
-
 pluginManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
-        google()
     }
 }
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "lisovskyi-jpa-starter"

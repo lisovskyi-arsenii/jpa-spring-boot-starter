@@ -1,0 +1,26 @@
+[versions]
+spring-boot = "4.1.1"
+spring-dependency-management = "1.1.7"
+java = "25"
+maven-publish = "0.37.0"
+security-starter = "1.0.0"
+
+[libraries]
+# BOM
+spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
+
+# Production Dependencies
+spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
+spring-security-core = { module = "org.springframework.security:spring-security-core" }
+security-starter-core = { module = "io.github.lisovskyi-arsenii:security-starter-core", version.ref = "security-starter" }
+spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure" }
+spring-boot-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor" }
+
+# Test Dependencies
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+h2 = { module = "com.h2database:h2" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+
+[plugins]
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency-management" }
+maven-publish-plugin = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }

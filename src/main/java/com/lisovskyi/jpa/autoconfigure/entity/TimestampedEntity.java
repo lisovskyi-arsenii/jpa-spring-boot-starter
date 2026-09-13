@@ -2,11 +2,6 @@ package com.lisovskyi.jpa.autoconfigure.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -33,13 +28,15 @@ import java.time.Instant;
  * @see UpdateTimestampedEntity
  * @see AuditableEntity
  */
-@Getter
-@Setter
-@SuperBuilder
-@NoArgsConstructor
-@AllArgsConstructor
 @MappedSuperclass
 public abstract class TimestampedEntity extends BaseEntity {
+
+    protected TimestampedEntity() {}
+
+    protected TimestampedEntity(Instant createdAt, Instant updatedAt) {
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
 
     /** Timestamp set once when the entity is first persisted. Never modified on update. */
     @CreationTimestamp
@@ -50,4 +47,12 @@ public abstract class TimestampedEntity extends BaseEntity {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    public Instant getCreatedAt() { return createdAt; }
+
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
+    public Instant getUpdatedAt() { return updatedAt; }
+
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }

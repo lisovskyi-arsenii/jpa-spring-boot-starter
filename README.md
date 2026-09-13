@@ -1,11 +1,11 @@
 # lisovskyi-jpa-starter
 
-![Java](https://img.shields.io/badge/Java-21%2B-orange?logo=openjdk)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-brightgreen?logo=springboot)
-![Version](https://img.shields.io/badge/version-0.1.3-blue)
+![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.1-brightgreen?logo=springboot)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 
-A Spring Boot auto-configuration library that standardises JPA persistence across microservices. It provides a UUID v7-based identity strategy, a hierarchy of auditable base entities, and Spring Data JPA auditing wired automatically to the Spring Security context — all with zero boilerplate in consumer services.
+A Spring Boot auto-configuration library that standardises JPA persistence across microservices. It provides a per-entity database-sequence identity strategy, a hierarchy of auditable base entities, and Spring Data JPA auditing wired automatically to the Spring Security context — all with zero boilerplate in consumer services.
 
 ---
 
@@ -15,35 +15,36 @@ Every JPA-based microservice needs the same scaffolding: a consistent ID generat
 
 `lisovskyi-jpa-starter` solves this by shipping:
 
-- A custom **UUID v7 generator** (time-ordered, k-sortable) that plugs directly into Hibernate.
+- A custom **database-sequence ID generator** whose sequence name is derived automatically from the entity class name, and plugs directly into Hibernate.
 - A hierarchy of **`@MappedSuperclass` base entities** covering every combination of identity, timestamps, and audit metadata.
 - A **`SecurityAuditorAware`** implementation that reads the current user from the Spring Security context (falls back to `"SYSTEM"` when no authentication is present).
 - A **`JpaAutoConfiguration`** that enables `@EnableJpaAuditing` safely — guarded by `@ConditionalOnMissingBean(name = "jpaAuditingHandler")` to prevent double-registration conflicts.
 
 ---
 
-## Why UUID v7?
+## Why a per-entity sequence?
 
-UUID v4 is randomly generated, which means every new row gets a random position in the B-tree index. Under high insert volume this causes **index fragmentation** — the database must constantly split and rebalance index pages, degrading write performance.
+A common Hibernate default is a single shared `hibernate_sequence` for every entity in the application. That works, but it means every insert across every table contends for the same sequence, and there is no way to tell — from the sequence alone — which table an ID gap came from.
 
-**UUID v7** is time-ordered (k-sortable): each new UUID is lexicographically greater than the previous one. New rows are always appended at the tail of the index, just like an auto-increment integer — with none of the coordination overhead of sequences in distributed systems.
+`EntitySequenceGenerator` derives a dedicated sequence per entity from the class name (`UserEntity` → `user_entity_seq_gen`, `ProductOrder` → `product_order_seq_gen`), so:
 
-| Property | UUID v4 | UUID v7 |
+| Property | Shared `hibernate_sequence` | Per-entity sequence |
 |---|---|---|
-| Globally unique | ✅ | ✅ |
-| DB-independent generation | ✅ | ✅ |
-| Index-friendly (k-sortable) | ❌ | ✅ |
-| Embeds creation time | ❌ | ✅ |
-| Sequential on the same node | ❌ | ✅ |
+| No cross-table contention | ❌ | ✅ |
+| Sequence name traceable to a table | ❌ | ✅ |
+| Per-entity allocation-size tuning | ❌ | ✅ (`@SequenceSize`) |
+| Zero boilerplate (`@Id` + `@EntitySequence`) | ✅ | ✅ |
+
+It still builds on Hibernate's own `SequenceStyleGenerator`, so DDL generation, allocation-size batching, and multi-database support (PostgreSQL, H2, Oracle, …) all work exactly as they would with a hand-declared `@SequenceGenerator`.
 
 ---
 
 ## Features
 
-- ✅ **UUID v7 ID generation** — time-ordered UUIDs via `com.github.f4b6a3:uuid-creator`. Existing IDs are preserved on merge/programmatic insert.
-- ✅ **`@UuidV7` annotation** — a simple custom annotation applied on `BaseEntity.id` to wire the generator.
+- ✅ **Per-entity sequence ID generation** — `EntitySequenceGenerator` derives a dedicated `{entity_class_name}_seq_gen` sequence per entity. Pre-set IDs (tests, data migrations) are preserved on merge/programmatic insert.
+- ✅ **`@EntitySequence` / `@SequenceSize` annotations** — `@EntitySequence` wires the generator onto `BaseEntity.id`; `@SequenceSize` overrides the default allocation size (50) per entity class.
 - ✅ **Entity hierarchy**:
-  - `BaseEntity` — UUID v7 `id`, proper `equals`/`hashCode` safe with Hibernate proxies.
+  - `BaseEntity` — sequence-generated `Long id`, proper `equals`/`hashCode` safe with Hibernate proxies.
   - `TimestampedEntity` — adds Hibernate `@CreationTimestamp`/`@UpdateTimestamp` (`createdAt`, `updatedAt`).
   - `CreationTimestampedEntity` — `createdAt` only.
   - `UpdateTimestampedEntity` — `updatedAt` only.
@@ -60,12 +61,10 @@ UUID v4 is randomly generated, which means every new row gets a random position 
 |---|---|
 | Java (runtime) | 21+ |
 | Java (built with) | JDK 25 |
-| Spring Boot BOM | 4.1.0 |
+| Spring Boot BOM | 4.1.1 |
 | Spring Boot Starter Data JPA | (BOM-managed) |
 | Spring Security Core | (BOM-managed, optional) |
 | Hibernate | (BOM-managed) |
-| uuid-creator | 6.1.1 |
-| Lombok | 1.18.46 |
 | Gradle | (wrapper included) |
 
 > **Runtime requirement:** Consumer services need Java **21 or later**. The library itself is compiled with JDK 25, but the bytecode targets a level compatible with any Java 21+ JVM.
@@ -82,14 +81,15 @@ lisovskyi-jpa-starter/
 │   ├── audit/
 │   │   └── SecurityAuditorAware.java   # Resolves current auditor from SecurityContextHolder
 │   ├── entity/
-│   │   ├── BaseEntity.java             # UUID v7 id; proxy-safe equals/hashCode
+│   │   ├── BaseEntity.java             # Sequence-generated Long id; proxy-safe equals/hashCode
 │   │   ├── TimestampedEntity.java      # createdAt + updatedAt (Hibernate timestamps)
 │   │   ├── CreationTimestampedEntity.java  # createdAt only
 │   │   ├── UpdateTimestampedEntity.java    # updatedAt only
 │   │   └── AuditableEntity.java        # Full Spring Data audit (dates + who)
 │   └── generator/
-│       ├── UuidV7.java                 # @UuidV7 Hibernate generator annotation
-│       └── UuidV7Generator.java        # Hibernate IdentifierGenerator implementation
+│       ├── EntitySequence.java         # @EntitySequence — wires the generator onto @Id
+│       ├── EntitySequenceGenerator.java    # Hibernate SequenceStyleGenerator subclass
+│       └── SequenceSize.java           # @SequenceSize — per-entity allocation-size override
 └── src/main/resources/
     └── META-INF/spring/
         └── org.springframework.boot.autoconfigure.AutoConfiguration.imports
@@ -101,29 +101,24 @@ lisovskyi-jpa-starter/
 
 - Java **21+** (compiled against JDK 25)
 - Gradle (wrapper `gradlew` / `gradlew.bat` is bundled)
-- A Spring Boot **4.1.0** consumer project with `spring-boot-starter-data-jpa` on the classpath
+- A Spring Boot **4.1.1** consumer project with `spring-boot-starter-data-jpa` on the classpath
 
 ---
 
 ## Installation
 
-The starter is published to the local Maven repository (`mavenLocal()`). Build and publish it first:
-
-```bash
-./gradlew publishToMavenLocal
-```
+Published to Maven Central via the [`com.vanniktech.maven.publish`](https://github.com/vanniktech/gradle-maven-publish-plugin) plugin — no extra repository declaration is needed beyond `mavenCentral()`.
 
 ### Gradle (Kotlin DSL)
 
 ```kotlin
 // build.gradle.kts
 repositories {
-    mavenLocal()
     mavenCentral()
 }
 
 dependencies {
-    implementation("com.lisovskyi:lisovskyi-jpa-starter:0.1.3")
+    implementation("io.github.lisovskyi-arsenii:lisovskyi-jpa-starter:1.0.0")
 }
 ```
 
@@ -131,21 +126,22 @@ dependencies {
 
 ```xml
 <!-- pom.xml -->
-<repositories>
-  <repository>
-    <id>local</id>
-    <url>file://${user.home}/.m2/repository</url>
-  </repository>
-</repositories>
-
 <dependencies>
   <dependency>
-    <groupId>com.lisovskyi</groupId>
+    <groupId>io.github.lisovskyi-arsenii</groupId>
     <artifactId>lisovskyi-jpa-starter</artifactId>
-    <version>0.1.3</version>
+    <version>1.0.0</version>
   </dependency>
 </dependencies>
 ```
+
+To build and test a change locally without waiting on a Central release, publish to your local Maven repository instead:
+
+```bash
+./gradlew publishToMavenLocal
+```
+
+then add `mavenLocal()` to `repositories { }` in the consumer project.
 
 ---
 
@@ -180,7 +176,7 @@ public AuditorAware<String> auditorAware() {
 
 ### 1. Identity only (`BaseEntity`)
 
-When you only need a stable UUID v7 primary key with no timestamps:
+When you only need a stable sequence-generated primary key with no timestamps:
 
 ```java
 @Entity
@@ -192,7 +188,7 @@ public class Tag extends BaseEntity {
 }
 ```
 
-Inherits: `id` (UUID v7). Nothing else is added.
+Inherits: `id` (`Long`, backed by the `tag_seq_gen` sequence). Nothing else is added.
 
 ### 2. Entity with timestamps (`TimestampedEntity`)
 
@@ -235,6 +231,22 @@ public AuditorAware<String> customAuditor() {
 }
 ```
 
+### 5. Overriding the sequence allocation size
+
+By default, `EntitySequenceGenerator` pre-fetches 50 IDs per round-trip (Hibernate's own default). For a low-traffic entity where gaps from unused pre-fetched values matter more than round-trip cost, override it with `@SequenceSize`:
+
+```java
+@SequenceSize(size = 10)
+@Entity
+@Table(name = "audit_logs")
+public class AuditLogEntity extends BaseEntity {
+
+    private String action;
+}
+```
+
+Backed by the `audit_log_entity_seq_gen` sequence, allocating 10 IDs per round-trip instead of the default 50.
+
 ---
 
 ## Configuration Scenarios
@@ -269,9 +281,9 @@ public AuditorAware<String> auditorAware() {
 ## Known Limitations
 
 - **Multiple `AuditorAware` beans** — Spring Data JPA requires exactly one. The starter uses `@ConditionalOnMissingBean(AuditorAware.class)`, so declaring your own bean is sufficient to suppress the default. If another dependency also provides one, you'll get a `NoUniqueBeanDefinitionException` — resolve it by declaring a primary bean with `@Primary`.
-- **Batch inserts** — `UuidV7Generator` is invoked once per entity during `saveAll`. Monotonic ordering within the same millisecond is preserved by uuid-creator's built-in sub-millisecond counter. No consumer-side action required.
+- **Batch inserts** — `EntitySequenceGenerator` extends Hibernate's `SequenceStyleGenerator`, so `saveAll` benefits from the same allocation-size pre-fetch batching as a hand-declared `@SequenceGenerator`. No consumer-side action required.
 - **Pre-set IDs** — if an entity already carries a non-null `id` (e.g., in tests or data migrations), the generator returns the existing value as-is. This is intentional.
-- **Spring Boot version coupling** — the starter imports the Spring Boot 4.1.0 BOM. If your consumer project uses a different BOM version, pin conflicting dependency versions explicitly in your project's dependency management block.
+- **Spring Boot version coupling** — the starter imports the Spring Boot 4.1.1 BOM. If your consumer project uses a different BOM version, pin conflicting dependency versions explicitly in your project's dependency management block.
 
 ---
 
@@ -291,7 +303,7 @@ Contributions are welcome!
 
 1. Fork the repository and create your feature branch from `main`.
 2. Make sure the project builds and tests pass locally: `./gradlew build`.
-3. Keep code style consistent with the existing conventions (Lombok annotations, `@ConditionalOnMissingBean` for all auto-configured beans).
+3. Keep code style consistent with the existing conventions (plain Java getters/setters, `@ConditionalOnMissingBean` for all auto-configured beans).
 4. Open a pull request describing what you changed and why.
 
 ---
