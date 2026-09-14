@@ -297,6 +297,19 @@ Run the test suite with:
 
 ---
 
+## Versioning
+
+Neither the published artifact version nor its Maven `groupId` are set in `build.gradle.kts` — both come from [`gradle.properties`](gradle.properties) at the project root:
+
+```properties
+group=io.github.lisovskyi-arsenii
+version=1.0.0
+```
+
+Gradle reads `group`/`version` automatically as the project coordinates, and `build.gradle.kts` just forwards them (`project.group`, `project.version`) into the `mavenPublishing { coordinates(...) }` block read by the `com.vanniktech.maven.publish` plugin — so they end up on the built JAR, the generated POM, and the Maven Central release without any extra wiring in the build script. To release a new version, bump the `version` line here.
+
+---
+
 ## Contributing
 
 Contributions are welcome!
