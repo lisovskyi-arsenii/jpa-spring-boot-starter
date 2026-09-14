@@ -1,5 +1,7 @@
 package com.lisovskyi.jpa.autoconfigure;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -12,6 +14,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  * @see JpaAutoConfiguration
  */
+@Getter
+@Setter
 @ConfigurationProperties(prefix = "app.jpa")
 public class JpaProperties {
 
@@ -28,12 +32,4 @@ public class JpaProperties {
      * for example in modules that manage their own auditing setup.
      */
     private boolean auditingEnabled = true;
-
-    public boolean isAuditingEnabled() {
-        return auditingEnabled;
-    }
-
-    public void setAuditingEnabled(boolean auditingEnabled) {
-        this.auditingEnabled = auditingEnabled;
-    }
 }

@@ -3,6 +3,7 @@ package com.lisovskyi.jpa.autoconfigure.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
+import lombok.*;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -41,17 +42,12 @@ import java.time.Instant;
  */
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
+@SuperBuilder
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public abstract class AuditableEntity extends BaseEntity {
-
-    protected AuditableEntity() {}
-
-    protected AuditableEntity(Instant createdAt, Instant updatedAt, String createdBy, String updatedBy) {
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.createdBy = createdBy;
-        this.updatedBy = updatedBy;
-    }
-
     /** Timestamp set once when the entity is first persisted. Never modified on update. */
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -71,20 +67,4 @@ public abstract class AuditableEntity extends BaseEntity {
     @LastModifiedBy
     @Column(name = "updated_by")
     private String updatedBy;
-
-    public Instant getCreatedAt() { return createdAt; }
-
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-
-    public Instant getUpdatedAt() { return updatedAt; }
-
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-
-    public String getCreatedBy() { return createdBy; }
-
-    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
-
-    public String getUpdatedBy() { return updatedBy; }
-
-    public void setUpdatedBy(String updatedBy) { this.updatedBy = updatedBy; }
 }

@@ -2,6 +2,7 @@ package com.lisovskyi.jpa.autoconfigure.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
+import lombok.*;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
@@ -22,18 +23,14 @@ import java.time.Instant;
  * @see AuditableEntity
  */
 @MappedSuperclass
+@SuperBuilder
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public abstract class UpdateTimestampedEntity extends BaseEntity {
-
-    protected UpdateTimestampedEntity() {}
-
-    protected UpdateTimestampedEntity(Instant updatedAt) { this.updatedAt = updatedAt; }
-
     /** Timestamp refreshed automatically each time the entity is updated. */
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-
-    public Instant getUpdatedAt() { return updatedAt; }
-
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }

@@ -4,6 +4,7 @@ import com.lisovskyi.jpa.autoconfigure.generator.EntitySequence;
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
+import lombok.*;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -48,12 +49,12 @@ import java.util.Objects;
  * @see AuditableEntity
  */
 @MappedSuperclass
+@SuperBuilder
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public abstract class BaseEntity implements Serializable {
-
-    protected BaseEntity() {}
-
-    protected BaseEntity(Long id) { this.id = id; }
-
     /**
      * The surrogate primary key, populated by the database sequence
      * {@code {entity_class_name}_seq_gen} on first persist.
@@ -97,8 +98,4 @@ public abstract class BaseEntity implements Serializable {
     public int hashCode() {
         return getClass().hashCode();
     }
-
-    public Long getId() { return id; }
-
-    public void setId(Long id) { this.id = id; }
 }

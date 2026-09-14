@@ -16,9 +16,13 @@ dependencies {
     compileOnly(libs.spring.security.core)
     compileOnly(libs.security.starter.core)
     compileOnly(libs.spring.boot.autoconfigure)
+    compileOnly(libs.lombok)
 
+    // Для генерації spring-configuration-metadata.json для @ConfigurationProperties
+    annotationProcessor(libs.lombok)
     annotationProcessor(libs.spring.boot.configuration.processor)
 
+    // Тестовий classpath
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.spring.security.core)
     testImplementation(libs.spring.boot.autoconfigure)
